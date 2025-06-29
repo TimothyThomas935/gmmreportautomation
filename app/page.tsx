@@ -34,14 +34,19 @@ const Home: NextPage = () => {
           5thWest
         </Link>
         <Link
-          href="/EastMains"
+          href="/eastMains"
           className={`absolute bottom-1/3 left-1/6 bg-yellow-500 text-white rounded hover:bg-yellow-600 ${buttonPaddingClasses}`}>
           EastMains
         </Link>
         <Link
-          href="/SouthEastMains"
+          href="/southEastMains"
           className={`absolute bottom-1/16 left-1/4 bg-purple-500 text-white rounded hover:bg-purple-600 ${buttonPaddingClasses}`}>
           South East Mains
+        </Link>
+        <Link
+          href="/dispatch"
+          className={`absolute bottom-1/16 right-1/4 bg-purple-500 text-white rounded hover:bg-purple-600 ${buttonPaddingClasses}`}>
+          Dispatch
         </Link>
       </div>
     </div>
