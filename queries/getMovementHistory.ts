@@ -1,32 +1,25 @@
 import { supabase } from "../utils/subabaseClient";
 
 export const getMovementHistory = async (
-  firstName?: string,
+  tagId?: string,
   startDate?: string,
   endDate?: string
 ) => {
   let tagIDs: number[] = [];
-  if (firstName) {
-    const { data: tags, error: tagError } = await supabase
-      .from("CurrentLocation")
-      .select("TagID, FirstName, LastName")
-      .ilike("FirstName", `%${firstName}%`);
 
-    if (tagError || !tags) {
-      console.error("Tag lookup failed:", tagError);
-      return [];
-    }
-
-    tagIDs = tags.map((row) => row.TagID);
+  if (tagId) {
+    tagIDs = [Number(tagId)];
+  } else if (tagId === undefined) {
+    return []; // If no tagId is passed, return empty
   }
 
   let historyQuery = supabase
     .from("HistoryByTag")
     .select("TagID, IPPort, DateTime, NewAntennaSerialNumber")
     .order("DateTime", { ascending: false })
-    .limit(1000); // Increase as needed
+    .limit(1000);
 
-  if (firstName && tagIDs.length > 0) {
+  if (tagIDs.length > 0) {
     historyQuery = historyQuery.in("TagID", tagIDs);
   }
 

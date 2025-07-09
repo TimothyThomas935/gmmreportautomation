@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getReadersWithMinersByArea } from "../../queries/getReadersWithMinersByArea";
+import Header from "../../components/Header";
 
 type ReaderWithMiners = {
   name: string;
@@ -14,24 +15,32 @@ const AreaPage = () => {
   const { area } = useParams();
   const [readers, setReaders] = useState<ReaderWithMiners[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hideEmpty, setHideEmpty] = useState(false);
+  const [hideEmpty, setHideEmpty] = useState(true);
+  const [searchValue, setSearchValue] = useState("");
+  const labelToRawMap: Record<string, string> = {
+    Surface: "MINE 3",
+  };  
 
   useEffect(() => {
     const fetchData = async () => {
-      const decoded = decodeURIComponent(area as string);
-      const results = await getReadersWithMinersByArea(decoded);
+      const label = decodeURIComponent(area as string);
+      const raw = labelToRawMap[label] || label; // default to label if no mapping
+      const results = await getReadersWithMinersByArea(raw);
       setReaders(results);
       setLoading(false);
     };
-
+  
     fetchData();
   }, [area]);
+  
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">
-        Readers in {decodeURIComponent(area as string)}
-      </h1>
+      <Header
+        title={`Readers in ${decodeURIComponent(area as string)}`}
+        searchValue={searchValue}
+        onSearchChange={setSearchValue}
+      />
 
       {loading ? (
         <p>Loading...</p>
@@ -49,9 +58,17 @@ const AreaPage = () => {
             </label>
           </div>
 
-          {readers
-            .filter((reader) => !hideEmpty || reader.miners.length > 0)
-            .map((reader) => (
+          {readers.map((reader) => {
+            const filteredMiners = reader.miners.filter(
+              (m) =>
+                !searchValue.trim() ||
+                m.FirstName?.toLowerCase().includes(searchValue.toLowerCase())
+            );
+
+            // Skip if hiding empty readers and no matching miners
+            if (hideEmpty && filteredMiners.length === 0) return null;
+
+            return (
               <div
                 key={reader.name}
                 className="border border-gray-300 rounded-lg p-4 shadow-md bg-white"
@@ -60,21 +77,20 @@ const AreaPage = () => {
                   {reader.name}
                 </h2>
 
-                {reader.miners.length > 0 ? (
+                {filteredMiners.length > 0 ? (
                   <ul className="list-disc pl-6 text-gray-800">
-                    {reader.miners.map((miner, i) => (
+                    {filteredMiners.map((miner, i) => (
                       <li key={i}>
                         {miner.FirstName ?? ""} {miner.LastName ?? ""}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-gray-500 italic">
-                    No miners currently here.
-                  </p>
+                  <p className="text-gray-500 italic">No matching miners.</p>
                 )}
               </div>
-            ))}
+            );
+          })}
         </div>
       )}
     </div>

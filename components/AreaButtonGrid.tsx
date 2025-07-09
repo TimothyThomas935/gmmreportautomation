@@ -18,13 +18,13 @@ const AreaButtonGrid = ({
   return (
     <>
       {areas.map((area) => {
-        const position = areaPositions[area]; // ✅ Correct key
+        const position = areaPositions[area];
         if (!position) return null;
 
         return (
           <Link
             key={area}
-            href={`/${encodeURIComponent(area)}`} // ✅ Proper template
+            href={`/${encodeURIComponent(area)}`}
             className={`absolute bg-blue-600 text-white rounded hover:bg-blue-700 ${buttonPaddingClasses} flex flex-col items-center`}
             style={{ top: position.top, left: position.left }}
           >
