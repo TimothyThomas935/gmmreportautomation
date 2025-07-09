@@ -1,56 +1,96 @@
-import Image from 'next/image';
-import type { NextPage } from 'next';
-import Link from 'next/link';
-import './globals.css';
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getDistinctAreas } from "../queries/getAllAreas";
+import { getMinersByArea } from "../queries/getMinersByArea";
+import type { CurrentLocation } from "../types/CurrentLocation";
+import AreaButtonGrid from "../components/AreaButtonGrid";
+import MapLayout from "../components/MapLayout";
+
+type Area = {
+  raw: string;
+  label: string;
+};
 
 const buttonPaddingClasses =
-  'text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl ' +
-  'px-1 sm:px-2 md:px-2 lg:px-2 xl:px-2 ' +
-  'py-0.5 sm:py-1 md:py-1 lg:py-1 xl:py-1';
-const Home: NextPage = () => {
+  "text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl " +
+  "px-1 sm:px-2 md:px-2 lg:px-2 xl:px-2 " +
+  "py-0.5 sm:py-1 md:py-1 lg:py-1 xl:py-1";
+
+const AreaButtons = () => {
+  const [areas, setAreas] = useState<Area[]>([]);
+  // Store counts and names separately
+  const [minersByArea, setMinersByArea] = useState<
+    Record<string, CurrentLocation[]>
+  >({});
+  const [loading, setLoading] = useState(true);
+  const [firstName, setFirstName] = useState("");
+
+  useEffect(() => {
+    const fetchAreasAndMiners = async () => {
+      const uniqueAreas = await getDistinctAreas();
+      setAreas(uniqueAreas);
+
+      // Fetch each area's miners lazily
+      uniqueAreas.forEach(async (area) => {
+        const miners = await getMinersByArea(area.raw);
+        setMinersByArea((prev) => ({
+          ...prev,
+          [area.label]: miners,
+        }));
+      });
+
+      setLoading(false); // Consider moving this if you want to wait for all miners
+    };
+
+    fetchAreasAndMiners();
+  }, []);
+
+  // 🔍 Filter miners by first name
+  const filteredMinersByArea = Object.fromEntries(
+    Object.entries(minersByArea).map(([area, miners]) => [
+      area,
+      firstName.trim()
+        ? miners.filter((m) =>
+            m.FirstName?.toLowerCase().includes(firstName.toLowerCase())
+          )
+        : miners,
+    ])
+  );
+
   return (
-    <div className="m-0 overflow-auto">
-      <div className="image-container inline-block relative">
-        <Image
-          src="/img/MineMap.jpg"
-          alt="Mine Map"
-          className="block w-auto h-auto min-w-full min-h-full"
-          width={1200} // Adjust to your image's actual width
-          height={800} // Adjust to your image's actual height
+    <MapLayout>
+      <div className="absolute top-4 left-4 z-50">
+        <input
+          type="text"
+          placeholder="Search First Name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="px-3 py-1 rounded border border-gray-300 text-black"
         />
+      </div>
+
+      {loading ? (
+        <p className="text-white text-xl">Loading...</p>
+      ) : (
+        <AreaButtonGrid
+          areas={areas.map((a) => a.label)}
+          minersByArea={filteredMinersByArea}
+          buttonPaddingClasses={buttonPaddingClasses}
+        />
+      )}
+
+      <div className="absolute z-50" style={{ bottom: "95%", right: "2%" }}>
         <Link
-          href="/1stNorthMains"
-          className={`absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-purple-500 text-white rounded hover:bg-purple-600 ${buttonPaddingClasses}`}>
-            1stNorthMains
-        </Link>
-        <Link
-          href="/2ndRightPanel1" 
-          className={`absolute top-1/4 right-3/16 bg-green-500 text-white rounded hover:bg-green-600 ${buttonPaddingClasses}`}>
-          2ndRightPanel1
-        </Link>
-        <Link
-          href="/5thWest"
-          className={`absolute top-1/8 left-1/3 bg-red-500 text-white rounded hover:bg-red-600 ${buttonPaddingClasses}`}>
-          5thWest
-        </Link>
-        <Link
-          href="/eastMains"
-          className={`absolute bottom-1/3 left-1/6 bg-yellow-500 text-white rounded hover:bg-yellow-600 ${buttonPaddingClasses}`}>
-          EastMains
-        </Link>
-        <Link
-          href="/southEastMains"
-          className={`absolute bottom-1/16 left-1/4 bg-purple-500 text-white rounded hover:bg-purple-600 ${buttonPaddingClasses}`}>
-          South East Mains
-        </Link>
-        <Link
-          href="/dispatch"
-          className={`absolute bottom-1/16 right-1/4 bg-purple-500 text-white rounded hover:bg-purple-600 ${buttonPaddingClasses}`}>
-          Dispatch
+          href="/movementReport"
+          className="bg-green-600 text-white px-4 py-2 rounded shadow-md hover:bg-green-700"
+        >
+          Run Movement Report
         </Link>
       </div>
-    </div>
+    </MapLayout>
   );
 };
 
-export default Home;
+export default AreaButtons;
