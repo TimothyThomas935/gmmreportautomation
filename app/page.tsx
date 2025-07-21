@@ -6,7 +6,8 @@ import { getMinersByArea } from "../queries/getMinersByArea";
 import type { CurrentLocation } from "../types/CurrentLocation";
 import AreaButtonGrid from "../components/AreaButtonGrid";
 import MapLayout from "../components/MapLayout";
-import Header from "../components/Header"; // ✅ import Header
+import Header from "../components/Header";
+import { getSnapshotAtTime } from "../queries/getSnapshotAtTime";
 
 type Area = {
   raw: string;
@@ -21,29 +22,56 @@ const buttonPaddingClasses =
 const AreaButtons = () => {
   const [areas, setAreas] = useState<Area[]>([]);
   const [minersByArea, setMinersByArea] = useState<
-    Record<string, CurrentLocation[]>
+    Record<string, Partial<CurrentLocation>[]>
   >({});
+
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
+
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [useSnapshot, setUseSnapshot] = useState(false);
 
   useEffect(() => {
     const fetchAreasAndMiners = async () => {
       const uniqueAreas = await getDistinctAreas();
       setAreas(uniqueAreas);
 
-      uniqueAreas.forEach(async (area) => {
-        const miners = await getMinersByArea(area.raw);
-        setMinersByArea((prev) => ({
-          ...prev,
-          [area.label]: miners,
-        }));
-      });
+      // If snapshot mode, get all data and group
+      if (useSnapshot && date && time) {
+        const timestamp = `${date}T${time}:00+00:00`;
+
+        const snapshot = await getSnapshotAtTime(timestamp);
+        console.log("Snapshot timestamp:", timestamp);
+
+
+        // Group by ReaderName or Area
+        const grouped: Record<string, Partial<CurrentLocation>[]> = {};
+        for (const rows of Object.values(snapshot)) {
+          for (const row of rows) {
+            const area = row.ReaderName ?? "Unknown"; // fallback if needed
+            if (!grouped[area]) grouped[area] = [];
+            grouped[area].push(row);
+          }
+        }
+        setMinersByArea(grouped);
+      } else {
+        // Live mode
+        for (const area of uniqueAreas) {
+          const miners = await getMinersByArea(area.raw);
+          setMinersByArea((prev) => ({
+            ...prev,
+            [area.label]: miners,
+          }));
+        }
+      }
 
       setLoading(false);
     };
 
     fetchAreasAndMiners();
-  }, []);
+    setLoading(false);
+  }, [date, time, useSnapshot]);
 
   const filteredMinersByArea = Object.fromEntries(
     Object.entries(minersByArea).map(([area, miners]) => [
@@ -64,8 +92,34 @@ const AreaButtons = () => {
         onSearchChange={setFirstName}
       />
 
+      <div className="flex gap-2 items-center mb-4 px-4">
+        <label className="text-black">
+          <input
+            type="checkbox"
+            checked={useSnapshot}
+            onChange={() => setUseSnapshot(!useSnapshot)}
+            className="mr-2"
+          />
+          Use Snapshot
+        </label>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="text-black px-2 py-1 rounded"
+          disabled={!useSnapshot}
+        />
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          className="px-2 py-1 text-black rounded"
+          disabled={!useSnapshot}
+        />
+      </div>
+
       {loading ? (
-        <p className="text-white text-xl">Loading...</p>
+        <p className="text-black text-xl">Loading...</p>
       ) : (
         <AreaButtonGrid
           areas={areas.map((a) => a.label)}

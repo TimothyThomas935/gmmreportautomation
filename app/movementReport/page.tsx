@@ -35,6 +35,18 @@ const MovementReport = () => {
     setLoading(false);
   };
 
+  const [snapshotTime, setSnapshotTime] = useState("");
+  const getSnapshotResults = () => {
+    if (!snapshotTime || !startDate) return [];
+
+    const snapshotDateTime = new Date(`${startDate}T${snapshotTime}`);
+    return results.filter((row) => {
+      const rowTime = new Date(row.DateTime);
+      const diff = Math.abs(rowTime.getTime() - snapshotDateTime.getTime());
+      return diff < 5 * 60 * 1000; // within 5 minutes
+    });
+  };
+
   const clearFilters = () => {
     setSelectedMiner(null);
     setStartDate("");
@@ -108,6 +120,12 @@ const MovementReport = () => {
             onChange={(e) => setEndDate(e.target.value)}
             className="border rounded px-3 py-2"
           />
+          <input
+            type="time"
+            value={snapshotTime}
+            onChange={(e) => setSnapshotTime(e.target.value)}
+            className="border rounded px-3 py-2"
+          />
           <button
             onClick={fetchData}
             disabled={!selectedMiner}
@@ -149,19 +167,23 @@ const MovementReport = () => {
           <p>Loading...</p>
         ) : showMap ? (
           <div className="relative flex-grow border rounded overflow-hidden min-h-[70vh]">
-<MapLayout>
-  <AreaButtonGrid
-    areas={areas.map((a) => a.label)}
-    minersByArea={Object.fromEntries(
-      Object.entries(getMinerCountsByArea()).map(([area, count]) => [
-        area,
-        Array(count).fill({}),
-      ])
-    )}
-  />
-  <MovementPathsOverlay paths={getPathCounts()} />
-</MapLayout>
-
+            <MapLayout>
+              <AreaButtonGrid
+                areas={areas.map((a) => a.label)}
+                minersByArea={
+                  snapshotTime
+                    ? Object.fromEntries(
+                        getSnapshotResults().map((r) => [r.Area, [{}]])
+                      )
+                    : Object.fromEntries(
+                        Object.entries(getMinerCountsByArea()).map(
+                          ([area, count]) => [area, Array(count).fill({})]
+                        )
+                      )
+                }
+              />
+              <MovementPathsOverlay paths={getPathCounts()} />
+            </MapLayout>
           </div>
         ) : results.length > 0 ? (
           <table className="table-auto w-full border-collapse border border-gray-300">

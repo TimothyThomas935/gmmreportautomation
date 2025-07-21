@@ -6,7 +6,7 @@ import { areaPositions } from "../public/areaPositions";
 
 type Props = {
   areas: string[];
-  minersByArea: Record<string, CurrentLocation[]>;
+  minersByArea: Record<string, Partial<CurrentLocation>[]>;
   buttonPaddingClasses?: string;
 };
 

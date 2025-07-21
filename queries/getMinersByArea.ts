@@ -1,8 +1,15 @@
 import { supabase } from "../utils/subabaseClient";
 import type { CurrentLocation } from "../types/CurrentLocation";
 
-// Maps area to reader names that belong to that area
-export const getMinersByArea = async (area: string): Promise<any[]> => {
+export const getMinersByArea = async (
+  area: string,
+  timestamp?: string
+): Promise<
+  Pick<
+    CurrentLocation,
+    "FirstName" | "LastName" | "ReaderName" | "DateTime" | "TagID"
+  >[]
+> => {
   const { data: readers } = await supabase
     .from("Reader")
     .select("Name")
@@ -10,18 +17,22 @@ export const getMinersByArea = async (area: string): Promise<any[]> => {
 
   const readerNames = readers?.map((r) => r.Name) ?? [];
 
-  const { data, error } = await supabase
+  const query = supabase
     .from("CurrentLocation")
     .select("FirstName, LastName, ReaderName, DateTime, TagID")
     .in("ReaderName", readerNames)
-    .order("DateTime", { ascending: false });
+    .lte("DateTime", timestamp)
+    .order("TagID", { ascending: true }) // to group
+    .order("DateTime", { ascending: false }); // newest first per tag
+
+  const { data, error } = await query;
 
   if (error) {
     console.error(`Error fetching miners for ${area}:`, error);
     return [];
   }
 
-  // Group by TagID, keep latest
+  // Deduplicate by TagID — keep latest record per miner
   const seen = new Set();
   const unique = data.filter((entry) => {
     if (seen.has(entry.TagID)) return false;
