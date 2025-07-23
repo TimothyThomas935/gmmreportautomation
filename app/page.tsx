@@ -8,7 +8,6 @@ import AreaButtonGrid from "../components/AreaButtonGrid";
 import MapLayout from "../components/MapLayout";
 import Header from "../components/Header";
 import { getSnapshotAtTime } from "../queries/getSnapshotAtTime";
-
 type Area = {
   raw: string;
   label: string;
@@ -41,19 +40,29 @@ const AreaButtons = () => {
       if (useSnapshot && date && time) {
         const timestamp = `${date}T${time}:00+00:00`;
 
-        const snapshot = await getSnapshotAtTime(timestamp);
+        const snapshot = (await getSnapshotAtTime(timestamp)) as SnapshotRow[];
         console.log("Snapshot timestamp:", timestamp);
-
 
         // Group by ReaderName or Area
         const grouped: Record<string, Partial<CurrentLocation>[]> = {};
-        for (const rows of Object.values(snapshot)) {
-          for (const row of rows) {
-            const area = row.ReaderName ?? "Unknown"; // fallback if needed
-            if (!grouped[area]) grouped[area] = [];
-            grouped[area].push(row);
-          }
+        for (const row of snapshot) {
+          const area = row.Area ?? "Unknown";
+          if (!grouped[area]) grouped[area] = [];
+
+          grouped[area].push({
+            TagID: row.TagID,
+            FirstName: row.FirstName,
+            LastName: row.LastName,
+            TagType: row.TagType,
+            Person: row.Person,
+            ReaderName: row.ReaderName,
+            ReaderDescription: row.ReaderDescription,
+            DateTime: row.history_time,
+            TP_IPPort: "", // or row.IPPort if available
+          });
         }
+
+        console.log("Snapshot result:", snapshot);
         setMinersByArea(grouped);
       } else {
         // Live mode
