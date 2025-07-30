@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { CurrentLocation } from "../types/CurrentLocation";
-import { areaPositions } from "../public/areaPositions";
+import { areaPositions } from "../public/HardCodedValues/areaPositions";
 
 type Props = {
   areas: string[];

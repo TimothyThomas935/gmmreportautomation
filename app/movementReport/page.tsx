@@ -6,7 +6,7 @@ import { getDistinctAreas } from "../../queries/getAllAreas";
 import Header from "../../components/Header";
 import MapLayout from "../../components/MapLayout";
 import AreaButtonGrid from "../../components/AreaButtonGrid";
-import { areaPositions } from "../../public/areaPositions";
+import { areaPositions } from "../../public/HardCodedValues/areaPositions";
 import MovementPathsOverlay from "../../components/MovementPathsOverlay";
 
 type Miner = {

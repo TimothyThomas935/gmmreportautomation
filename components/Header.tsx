@@ -39,9 +39,16 @@ const Header = ({
 
         <Link
           href="/movementReport"
-          className="bg-green-600 text-sm px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap"
+          className="bg-green-600 text-sm px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap m-4"
         >
             Movement Report
+        </Link>
+
+        <Link
+          href="/speedReport"
+          className="bg-blue-600 text-sm px-4 py-2 rounded hover:bg-blue-700 whitespace-nowrap m-4"
+        >
+            Speed Report
         </Link>
       </div>
     </header>

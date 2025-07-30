@@ -1,6 +1,6 @@
 // components/MovementPathsOverlay.tsx
 "use client";
-import { areaPositions } from "../public/areaPositions";
+import { areaPositions } from "../public/HardCodedValues/areaPositions";
 
 type Props = {
   paths: { from: string; to: string; count: number }[];
