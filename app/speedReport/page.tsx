@@ -106,11 +106,20 @@ export default function SpeedReportPage() {
                           <p className="font-medium mb-2 text-gray-700">
                             Segment Speeds:
                           </p>
-                          <ul className="list-disc pl-5 space-y-1 text-gray-600">
+                          <ul className="space-y-1 text-gray-600">
                             {entry.segments.map((seg, i) => (
-                              <li key={i}>
-                                {seg.readerFrom} ({seg.timeFrom}) →{" "}
-                                {seg.readerTo} ({seg.timeTo})
+                              <li
+                                key={i}
+                                className="flex justify-between gap-4"
+                              >
+                                <span>
+                                  {seg.readerFrom} ({seg.timeFrom}) →{" "}
+                                  {seg.readerTo} ({seg.timeTo})
+                                </span>
+                                <span className="whitespace-nowrap font-mono text-sm text-gray-700">
+                                  {Math.floor(seg.durationSeconds / 60)}m{" "}
+                                  {seg.durationSeconds % 60}s
+                                </span>
                               </li>
                             ))}
                           </ul>
