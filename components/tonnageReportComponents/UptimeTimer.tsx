@@ -67,25 +67,6 @@ export default function UptimeTimer() {
 
     setHourAgg(map);
     setAnchorMs(anchorTime);
-
-    // Log last UP hour (newest → oldest scan) on each refresh
-    const windowStarts: number[] = [];
-    for (let i = 23; i >= 0; i--) {
-      const d = new Date(anchorTime);
-      d.setHours(d.getHours() - i);
-      windowStarts.push(d.getTime());
-    }
-    let found: { t: number; total: number } | null = null;
-    for (let i = windowStarts.length - 1; i >= 0; i--) {
-      const t = windowStarts[i];
-      const total = map.get(t)?.total ?? 0;
-      if (total >= THRESHOLD) { found = { t, total }; break; }
-    }
-    if (found) {
-      console.log(`[UPTIME] Last UP hour (≥ ${THRESHOLD}): ${dts(found.t)} • ${found.total.toFixed(1)} tons`);
-    } else {
-      console.log(`[UPTIME] No hour ≥ ${THRESHOLD} in last 24 hours.`);
-    }
   }
 
   useEffect(() => {
@@ -108,7 +89,8 @@ export default function UptimeTimer() {
   // derive current action, run start, elapsed
   const model = useMemo(() => {
     const perHour = windowStarts.map((t) => {
-      const total = hourAgg.get(t)?.total ?? 0;
+      const rec = hourAgg.get(t);
+      const total = rec?.total ?? 0;
       const hasSample = hourAgg.has(t);
       const isUp: boolean | null = hasSample ? total >= THRESHOLD : null;
       return { t, total, hasSample, isUp };
@@ -168,18 +150,27 @@ export default function UptimeTimer() {
       ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300"
       : "bg-rose-100 text-rose-700 ring-1 ring-rose-300";
 
+  const timerColor =
+    model.currentAction === "UP" ? "text-black" : "text-black";
+
+  const firstT = model.perHour[0]?.t;
+  const lastT = model.perHour[model.perHour.length - 1]?.t;
+
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm">
+    <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black">
       {/* Status + timer */}
       <div className="flex items-center gap-3">
         <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${badge}`}>
           <span className={`h-2 w-2 rounded-full ${model.currentAction === "UP" ? "bg-emerald-600" : "bg-rose-600"}`} />
           {model.currentAction}
         </span>
-        <span className="text-3xl text-black font-semibold tabular-nums" suppressHydrationWarning>
+        <span
+          className={`text-3xl font-semibold tabular-nums ${timerColor}`}
+          suppressHydrationWarning
+        >
           {fmt(model.elapsedSec)}
         </span>
-        <span className="text-sm text-zinc-500">
+        <span className="text-sm text-zinc-600">
           since {dts(model.runStart)}
           {model.currentKnown?.hasSample === false ? " (unknown current hour)" : ""}
         </span>
@@ -189,20 +180,42 @@ export default function UptimeTimer() {
       <div>
         <div className="mb-2 text-sm text-zinc-600">Last 24 hours</div>
         <div className="grid grid-cols-24 gap-[2px]">
-          {model.perHour.map((h) => (
-            <div
-              key={h.t}
-              title={`${dts(h.t)} • ${h.hasSample ? `${h.total.toFixed(1)} tons` : "no data"}`}
-              className={`h-3 rounded-sm ${
-                h.isUp === null ? "bg-zinc-300/70" : h.isUp ? "bg-emerald-500/80" : "bg-rose-500/80"
-              }`}
-            />
-          ))}
+          {model.perHour.map((h) => {
+            // color priority: unknown → gray; known with >0 & <THRESHOLD → amber; known & >=THRESHOLD → green; known & ==0 → red
+            const cls =
+              h.isUp === null
+                ? "bg-zinc-300/70"
+                : h.total > 0 && h.total < THRESHOLD
+                ? "bg-amber-400/80"
+                : h.isUp
+                ? "bg-emerald-500/80"
+                : "bg-rose-500/80";
+            return (
+              <div
+                key={h.t}
+                title={`${dts(h.t)} • ${h.isUp === null ? "no data" : `${h.total.toFixed(1)} tons`}`}
+                className={`h-3 rounded-sm ${cls}`}
+              />
+            );
+          })}
         </div>
+
+        {/* first/last time labels under the strip */}
+        {firstT && lastT && (
+          <div className="mt-1 grid grid-cols-24 text-[10px] text-zinc-700">
+            <div className="col-span-1 text-left">
+              {new Date(firstT).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+            <div className="col-span-22" />
+            <div className="col-span-1 text-right">
+              {new Date(lastT).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent events */}
-      <div className="rounded-2xl text-black bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
         <div className="border-b px-4 py-2 font-medium">Recent State Changes</div>
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left">
