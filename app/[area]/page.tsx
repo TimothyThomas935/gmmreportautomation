@@ -11,15 +11,16 @@ type ReaderWithMiners = {
   miners: { FirstName: string | null; LastName: string | null }[];
 };
 
+const labelToRawMap: Record<string, string> = {
+  Surface: "MINE 3",
+};
+
 const AreaPage = () => {
   const { area } = useParams();
   const [readers, setReaders] = useState<ReaderWithMiners[]>([]);
   const [loading, setLoading] = useState(true);
   const [hideEmpty, setHideEmpty] = useState(true);
   const [searchValue, setSearchValue] = useState("");
-  const labelToRawMap: Record<string, string> = {
-    Surface: "MINE 3",
-  };  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,7 +30,7 @@ const AreaPage = () => {
       setReaders(results);
       setLoading(false);
     };
-  
+
     fetchData();
   }, [area]);
   

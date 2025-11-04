@@ -28,19 +28,32 @@ function dts(ms: number) {
   return new Date(ms).toLocaleString("en-US", TZ_OPTS);
 }
 function fmt(seconds: number) {
-  const h = Math.floor(seconds / 3600).toString().padStart(2, "0");
-  const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, "0");
-  const s = Math.floor(seconds % 60).toString().padStart(2, "0");
+  const h = Math.floor(seconds / 3600)
+    .toString()
+    .padStart(2, "0");
+  const m = Math.floor((seconds % 3600) / 60)
+    .toString()
+    .padStart(2, "0");
+  const s = Math.floor(seconds % 60)
+    .toString()
+    .padStart(2, "0");
   return `${h}:${m}:${s}`;
 }
 
 export default function UptimeTimer() {
   // aggregated totals keyed by *anchored* hour-start (ms)
-  const [hourAgg, setHourAgg] = useState<Map<number, { total: number }>>(new Map());
-  const [anchorMs, setAnchorMs] = useState<number>(startOfCurrentHour().getTime());
+  const [hourAgg, setHourAgg] = useState<Map<number, { total: number }>>(
+    new Map()
+  );
+  const [anchorMs, setAnchorMs] = useState<number>(
+    startOfCurrentHour().getTime()
+  );
   const [nowMs, setNowMs] = useState<number>(Date.now());
   const [events, setEvents] = useState<ShiftEvent[]>([]);
-  const lastPostedRef = useRef<{ action: "UP" | "DOWN"; runStart: number } | null>(null);
+  const lastPostedRef = useRef<{
+    action: "UP" | "DOWN";
+    runStart: number;
+  } | null>(null);
 
   // 1s tick (UI only)
   useEffect(() => {
@@ -50,7 +63,9 @@ export default function UptimeTimer() {
 
   // fetch hourly rows every 60s; use ONE anchor per fetch
   async function fetchHourly() {
-    const res = await fetch("/api/tonnage?timeframe=hour", { cache: "no-store" });
+    const res = await fetch("/api/tonnage?timeframe=hour", {
+      cache: "no-store",
+    });
     if (!res.ok) throw new Error(await res.text());
     const data = (await res.json()) as HourRow[];
 
@@ -73,6 +88,26 @@ export default function UptimeTimer() {
     fetchHourly().catch(console.error);
     const id = setInterval(() => fetchHourly().catch(console.error), 60_000);
     return () => clearInterval(id);
+  }, []);
+  // inside UptimeTimer component
+  useEffect(() => {
+    let stop = false;
+
+    async function load() {
+      const r = await fetch("/api/shift-events/recent?limit=10", {
+        cache: "no-store",
+      });
+      if (!r.ok) return;
+      const rows = await r.json();
+      if (!stop) setEvents(rows); // rows: { ts, action, runStart, siteTotalAtFlip }[]
+    }
+
+    load().catch(console.error);
+    const id = setInterval(() => load().catch(console.error), 60_000);
+    return () => {
+      stop = true;
+      clearInterval(id);
+    };
   }, []);
 
   // build anchored 24-hour window (oldest → newest)
@@ -100,7 +135,8 @@ export default function UptimeTimer() {
     let idx = perHour.length - 1;
     while (idx >= 0 && perHour[idx].isUp === null) idx--;
     const currentKnown = idx >= 0 ? perHour[idx] : null;
-    const currentAction: "UP" | "DOWN" = currentKnown && currentKnown.isUp ? "UP" : "DOWN";
+    const currentAction: "UP" | "DOWN" =
+      currentKnown && currentKnown.isUp ? "UP" : "DOWN";
 
     // walk back (skipping unknowns) to get runStart
     let runStart = perHour[0]?.t ?? anchorMs - 23 * 3600_000;
@@ -125,7 +161,8 @@ export default function UptimeTimer() {
     if (!model.currentKnown) return;
     const cur = { action: model.currentAction, runStart: model.runStart };
     const last = lastPostedRef.current;
-    if (last && last.action === cur.action && last.runStart === cur.runStart) return;
+    if (last && last.action === cur.action && last.runStart === cur.runStart)
+      return;
 
     lastPostedRef.current = cur;
 
@@ -150,8 +187,7 @@ export default function UptimeTimer() {
       ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300"
       : "bg-rose-100 text-rose-700 ring-1 ring-rose-300";
 
-  const timerColor =
-    model.currentAction === "UP" ? "text-black" : "text-black";
+  const timerColor = model.currentAction === "UP" ? "text-black" : "text-black";
 
   const firstT = model.perHour[0]?.t;
   const lastT = model.perHour[model.perHour.length - 1]?.t;
@@ -160,8 +196,14 @@ export default function UptimeTimer() {
     <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black">
       {/* Status + timer */}
       <div className="flex items-center gap-3">
-        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${badge}`}>
-          <span className={`h-2 w-2 rounded-full ${model.currentAction === "UP" ? "bg-emerald-600" : "bg-rose-600"}`} />
+        <span
+          className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm ${badge}`}
+        >
+          <span
+            className={`h-2 w-2 rounded-full ${
+              model.currentAction === "UP" ? "bg-emerald-600" : "bg-rose-600"
+            }`}
+          />
           {model.currentAction}
         </span>
         <span
@@ -172,7 +214,9 @@ export default function UptimeTimer() {
         </span>
         <span className="text-sm text-zinc-600">
           since {dts(model.runStart)}
-          {model.currentKnown?.hasSample === false ? " (unknown current hour)" : ""}
+          {model.currentKnown?.hasSample === false
+            ? " (unknown current hour)"
+            : ""}
         </span>
       </div>
 
@@ -193,7 +237,9 @@ export default function UptimeTimer() {
             return (
               <div
                 key={h.t}
-                title={`${dts(h.t)} • ${h.isUp === null ? "no data" : `${h.total.toFixed(1)} tons`}`}
+                title={`${dts(h.t)} • ${
+                  h.isUp === null ? "no data" : `${h.total.toFixed(1)} tons`
+                }`}
                 className={`h-3 rounded-sm ${cls}`}
               />
             );
@@ -204,11 +250,17 @@ export default function UptimeTimer() {
         {firstT && lastT && (
           <div className="mt-1 grid grid-cols-24 text-[10px] text-zinc-700">
             <div className="col-span-1 text-left">
-              {new Date(firstT).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(firstT).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
             <div className="col-span-22" />
             <div className="col-span-1 text-right">
-              {new Date(lastT).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {new Date(lastT).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </div>
           </div>
         )}
@@ -216,28 +268,44 @@ export default function UptimeTimer() {
 
       {/* Recent events */}
       <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
-        <div className="border-b px-4 py-2 font-medium">Recent State Changes</div>
+        <div className="border-b px-4 py-2 font-medium">
+          Recent State Changes
+        </div>
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 text-left">
             <tr>
-              <th className="px-4 py-2 w-[40%]">Logged At</th>
               <th className="px-4 py-2">Action</th>
               <th className="px-4 py-2 w-[40%]">Run Start</th>
+              <th className="px-4 py-2">Duration (hrs)</th>
               <th className="px-4 py-2 text-right">Site Total @ Flip</th>
             </tr>
           </thead>
           <tbody>
             {events.length === 0 ? (
-              <tr><td className="px-4 py-3 text-zinc-500" colSpan={4}>No flips yet</td></tr>
+              <tr>
+                <td className="px-4 py-3 text-zinc-500" colSpan={4}>
+                  No flips yet
+                </td>
+              </tr>
             ) : (
-              events.map((e, i) => (
-                <tr key={i} className="border-t">
-                  <td className="px-4 py-2">{dts(Date.parse(e.ts))}</td>
-                  <td className="px-4 py-2">{e.action}</td>
-                  <td className="px-4 py-2">{dts(Date.parse(e.runStart))}</td>
-                  <td className="px-4 py-2 text-right">{e.siteTotalAtFlip?.toFixed(1) ?? "—"}</td>
-                </tr>
-              ))
+              events.map((e, i) => {
+                const hrs =
+                  (e as any).run_duration_hours ??
+                  (e as any).runDurationHours ??
+                  null;
+                return (
+                  <tr key={`${e.runStart}-${i}`} className="border-t">
+                    <td className="px-4 py-2">{e.action}</td>
+                    <td className="px-4 py-2">{dts(Date.parse(e.runStart))}</td>
+                    <td className="px-4 py-2">{hrs ?? "—"}</td>
+                    <td className="px-4 py-2 text-right">
+                      {typeof e.siteTotalAtFlip === "number"
+                        ? e.siteTotalAtFlip.toFixed(1)
+                        : "—"}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
