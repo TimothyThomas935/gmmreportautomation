@@ -17,7 +17,11 @@ type ShiftEvent = {
   action: "UP" | "DOWN";
   runStart: string;
   siteTotalAtFlip?: number;
+  // optional duration fields from DB / API
+  run_duration_hours?: number | null;
+  runDurationHours?: number | null;
 };
+
 
 function startOfCurrentHour(): Date {
   const d = new Date();
@@ -289,10 +293,7 @@ export default function UptimeTimer() {
               </tr>
             ) : (
               events.map((e, i) => {
-                const hrs =
-                  (e as any).run_duration_hours ??
-                  (e as any).runDurationHours ??
-                  null;
+                const hrs = e.run_duration_hours ?? e.runDurationHours ?? null;
                 return (
                   <tr key={`${e.runStart}-${i}`} className="border-t">
                     <td className="px-4 py-2">{e.action}</td>

@@ -22,35 +22,36 @@ const MovementPathsOverlay = ({ paths }: Props) => {
         </marker>
       </defs>
 
-      {paths.map(({ from, to, count }, idx) => {
-        const fromPos = areaPositions[from];
-        const toPos = areaPositions[to];
-        if (!fromPos || !toPos) return null;
+      {paths.map(({ from, to, count }) => {
+  const fromPos = areaPositions[from];
+  const toPos = areaPositions[to];
+  if (!fromPos || !toPos) return null;
 
-        const lines = Math.min(count, 10);
-        const offsetStep = 2; // pixels between lines
+  const lines = Math.min(count, 10);
+  const offsetStep = 2;
 
-        const fromX = parseFloat(fromPos.left);
-        const fromY = parseFloat(fromPos.top);
-        const toX = parseFloat(toPos.left);
-        const toY = parseFloat(toPos.top);
+  const fromX = parseFloat(fromPos.left);
+  const fromY = parseFloat(fromPos.top);
+  const toX = parseFloat(toPos.left);
+  const toY = parseFloat(toPos.top);
 
-        return Array.from({ length: lines }).map((_, i) => {
-          const dx = (i - (lines - 1) / 2) * offsetStep;
-          return (
-            <line
-              key={`${from}-${to}-${i}`}
-              x1={`${fromX + dx}%`}
-              y1={`${fromY + dx}%`}
-              x2={`${toX + dx}%`}
-              y2={`${toY + dx}%`}
-              stroke="blue"
-              strokeWidth="2"
-              markerEnd="url(#arrow)"
-            />
-          );
-        });
-      })}
+  return Array.from({ length: lines }).map((_, i) => {
+    const dx = (i - (lines - 1) / 2) * offsetStep;
+    return (
+      <line
+        key={`${from}-${to}-${i}`}
+        x1={`${fromX + dx}%`}
+        y1={`${fromY + dx}%`}
+        x2={`${toX + dx}%`}
+        y2={`${toY + dx}%`}
+        stroke="blue"
+        strokeWidth="2"
+        markerEnd="url(#arrow)"
+      />
+    );
+  });
+})}
+
     </svg>
   );
 };

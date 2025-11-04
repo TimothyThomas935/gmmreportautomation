@@ -37,14 +37,23 @@ export function ReportChart({
     const asc = [...rows].sort(
       (a, b) => Number(a.timestamp) - Number(b.timestamp)
     );
+  
     return asc.map((r) => {
       const total =
         typeof r.total === "number"
           ? r.total
-          : piles.reduce((s, p) => s + Number((r as any)[p.name] || 0), 0);
+          : piles.reduce((sum, p) => {
+              const val = r[p.name];
+              // val can be number | string | undefined
+              if (typeof val === "number") return sum + val;
+              if (typeof val === "string") return sum + Number(val) || sum;
+              return sum;
+            }, 0);
+  
       return { ...r, total };
     });
   }, [rows, piles]);
+  
 
   const Swatch = ({ color, dashed = false }: { color: string; dashed?: boolean }) => (
     <span

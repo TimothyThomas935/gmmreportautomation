@@ -6,7 +6,6 @@ import { getDistinctAreas } from "../../queries/getAllAreas";
 import Header from "../../components/Header";
 import MapLayout from "../../components/MapLayout";
 import AreaButtonGrid from "../../components/AreaButtonGrid";
-import { areaPositions } from "../../public/HardCodedValues/areaPositions";
 import MovementPathsOverlay from "../../components/MovementPathsOverlay";
 
 type Miner = {
@@ -14,12 +13,21 @@ type Miner = {
   LastName: string;
   TagID: string;
 };
+type MovementResult = {
+  FirstName: string;
+  LastName: string;
+  ReaderName: string;
+  Area: string;
+  DateTime: string; // or Date if you parse it
+};
+
+
 
 const MovementReport = () => {
   const [selectedMiner, setSelectedMiner] = useState<Miner | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<MovementResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [areas, setAreas] = useState<{ raw: string; label: string }[]>([]);

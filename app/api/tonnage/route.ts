@@ -1,4 +1,3 @@
-// app/api/tonnage/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -27,21 +26,17 @@ export async function GET(req: Request) {
   try {
     // ───────────────── HOURLY (your table expects hour_index, pile, val) ─────────────────
     if (tfRaw === "hour" || tfRaw === "hourly") {
-      // Use the RPC that matches your SQL you liked (hour_index/pile/val).
-      // Change the name here if your function is different.
       const { data, error } = await supabase.rpc("api_hourly_tonnage_simple", {
-        // include args if your function accepts filters like p_tagindexes
+        // add args here if your RPC supports filters, e.g.:
         // p_tagindexes: tagindexes,
       });
       if (error) throw error;
 
-      // Ensure array; your frontend maps: hour_index, pile, val
       const rows = Array.isArray(data) ? data : [];
       return NextResponse.json(rows);
     }
 
     // ───────────────── DAILY / WEEKLY (bucket, tagindex, tagname, total) ─────────────────
-    // Map any UI variants to RPC values
     const timeframe =
       tfRaw === "daily" ? "day" :
       tfRaw === "weekly" ? "week" :
@@ -64,8 +59,12 @@ export async function GET(req: Request) {
 
     const rows = Array.isArray(data) ? data : [];
     return NextResponse.json(rows);
-  } catch (err: any) {
-    console.error("Error in /api/tonnage:", err?.message || err);
-    return NextResponse.json({ error: err?.message ?? "Unknown error" }, { status: 500 });
+  } catch (err: unknown) {
+    // standard TS pattern: narrow unknown to Error
+    const message =
+      err instanceof Error ? err.message : "Unknown error";
+
+    console.error("Error in /api/tonnage:", err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

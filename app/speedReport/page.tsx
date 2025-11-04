@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { getFullHistoryWithReaderInfo } from "../../queries/getFullHistoryWithReaderInfo";
 import { calculateSegmentSpeeds } from "../../utils/calculateSegmentSpeeds";
 import { HistoryEntry } from "../../types/HistoryEntry";
-import type { SpeedEntry, SegmentSpeed } from "../../types/SpeedEntry";
+import type { SpeedEntry} from "../../types/SpeedEntry";
 
 export default function SpeedReportPage() {
   const [expandedTagID, setExpandedTagID] = useState<number | null>(null);

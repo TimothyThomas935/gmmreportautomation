@@ -37,7 +37,7 @@ type ApiRow = {
 
 export default function TonnageReportsPage() {
   const [timeframe, setTimeframe] = useState<Timeframe>("Last 24 Hours");
-  const [piles, setPiles] = useState<Pile[]>(INITIAL_PILES);
+  const piles: Pile[] = INITIAL_PILES;
   const [selectedPileIds, setSelectedPileIds] = useState<number[]>([1, 4]);
 
   const [rows, setRows] = useState<ReportRow[]>([]);
@@ -102,8 +102,8 @@ export default function TonnageReportsPage() {
 
           // totals from active piles
           for (const hr of Object.values(byHour)) {
-            (hr as any).total = activePiles.reduce(
-              (sum, p) => sum + Number((hr as any)[p.name] || 0), 0
+            hr.total = activePiles.reduce(
+              (sum, p) => sum + Number(hr[p.name] || 0), 0
             );
           }
 
@@ -145,10 +145,13 @@ export default function TonnageReportsPage() {
         );
 
         setRows(shaped);
-      } catch (e: any) {
-        setErr(e?.message ?? "Failed to load data");
+      } catch (e: unknown) {
+        const message =
+          e instanceof Error ? e.message : "Failed to load data";
+        setErr(message);
         setRows([]);
       } finally {
+
         setLoading(false);
       }
     };

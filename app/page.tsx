@@ -1,3 +1,11 @@
+import { redirect } from "next/navigation";
+
+export default function Home() {
+  redirect("/tonnageReports");
+}
+
+
+/*
 "use client";
 
 import { useEffect, useState } from "react";
@@ -141,3 +149,4 @@ const AreaButtons = () => {
 };
 
 export default AreaButtons;
+*/
