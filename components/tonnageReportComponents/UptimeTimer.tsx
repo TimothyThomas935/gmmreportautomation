@@ -197,7 +197,7 @@ export default function UptimeTimer() {
   const lastT = model.perHour[model.perHour.length - 1]?.t;
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black">
+    <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black h-[446px]">
       {/* Status + timer */}
       <div className="flex items-center gap-3">
         <span

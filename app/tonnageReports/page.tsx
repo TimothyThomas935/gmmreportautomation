@@ -42,7 +42,8 @@ type ApiRow = {
   total?: number;
   pile?: string; // e.g. "Pile1"
   hour_index?: number; // 0..23, 23 = current local hour
-  val?: number;
+  val?: number; // tons
+  ash?: number; // 👈 new: ash value for this pile+hour
 };
 
 export default function TonnageReportsPage() {
@@ -123,11 +124,21 @@ export default function TonnageReportsPage() {
           // fill from API
           for (const r of Array.isArray(data) ? data : []) {
             const h = r.hour_index ?? 0;
-            if (!byHour[h])
+            if (!byHour[h]) {
               byHour[h] = { timestamp: hourIndexToLocalMs(h, anchor) };
+            }
+
             const pileLabel =
               r.pile?.replace(/(Pile)(\d+)/, "Pile $2") ?? "Unknown";
+
+            // tons
             byHour[h][pileLabel] = r.val ?? 0;
+
+            // ash – this is what ReportTable will read as `${p.name} Ash`
+            const ashKey = `${pileLabel} Ash`;
+            if (typeof r.ash === "number") {
+              byHour[h][ashKey] = r.ash;
+            }
           }
 
           // prefill missing hours
@@ -227,14 +238,21 @@ export default function TonnageReportsPage() {
 
       <SummaryCards rows={rows} piles={activePiles} timeframe={timeframe} />
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-[400px]">
+        {/* Row 1: Equal height timer + chart */}
         {timeframe === "Last 24 Hours" && (
-          <section className="space-y-4">
+          <div className="h-[500px]">
             <UptimeTimer />
-          </section>
+          </div>
         )}
-        <ReportChart rows={rows} piles={activePiles} timeframe={timeframe} />
-        <ReportTable rows={rows} piles={activePiles} timeframe={timeframe} />
+        <div className="h-full">
+          <ReportChart rows={rows} piles={activePiles} timeframe={timeframe} />
+        </div>
+
+        {/* Row 2: Full-width table */}
+        <div className="lg:col-span-2 pt-12">
+          <ReportTable rows={rows} piles={activePiles} timeframe={timeframe} />
+        </div>
       </section>
 
       {loading && <div className="text-sm text-zinc-500">Loading…</div>}
