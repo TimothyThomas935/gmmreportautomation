@@ -11,11 +11,21 @@ const UptimeTimer = dynamic(
   { ssr: false }
 );
 
-import type { Pile, Timeframe, ReportRow } from "@/components/tonnageReportComponents/types";
+import type {
+  Pile,
+  Timeframe,
+  ReportRow,
+} from "@/components/tonnageReportComponents/types";
 
 /* ---------- helpers ---------- */
-function isoDate(d: Date) { return d.toISOString().slice(0, 10); }
-function startOfToday() { const d = new Date(); d.setHours(0,0,0,0); return d; }
+function isoDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
 /* ---------- temp piles ---------- */
 const INITIAL_PILES: Pile[] = [
@@ -30,8 +40,8 @@ type ApiRow = {
   tagindex?: number;
   tagname?: string;
   total?: number;
-  pile?: string;        // e.g. "Pile1"
-  hour_index?: number;  // 0..23, 23 = current local hour
+  pile?: string; // e.g. "Pile1"
+  hour_index?: number; // 0..23, 23 = current local hour
   val?: number;
 };
 
@@ -49,23 +59,43 @@ export default function TonnageReportsPage() {
   const [minuteTick, setMinuteTick] = useState(0);
   useEffect(() => {
     if (timeframe !== "Last 24 Hours") return;
-    const id = setInterval(() => setMinuteTick(t => t + 1), 60_000);
+    const id = setInterval(() => setMinuteTick((t) => t + 1), 60_000);
     return () => clearInterval(id);
   }, [timeframe]);
 
   // default date range (for day/week views)
   const today = new Date();
-  const defaultStart = new Date(today); defaultStart.setDate(today.getDate() - 7);
-  const [range, setRange] = useState({ start: isoDate(defaultStart), end: isoDate(today) });
+  const defaultStart = new Date(today);
+  defaultStart.setDate(today.getDate() - 7);
+  const [range, setRange] = useState({
+    start: isoDate(defaultStart),
+    end: isoDate(today),
+  });
 
   const activePiles = useMemo(
-    () => piles.filter(p => selectedPileIds.includes(p.id)),
+    () => piles.filter((p) => selectedPileIds.includes(p.id)),
     [piles, selectedPileIds]
   );
 
+  useEffect(() => {
+    fetch("/api/tonnage/sync-hourly-history", {
+      method: "POST",
+    })
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        console.log("[sync-hourly-history] status:", res.status, "body:", body);
+      })
+      .catch((err) => {
+        console.error("Failed to sync hourly history:", err);
+      });
+  }, []);
+
   // clamp range + notice when in hourly mode
   useEffect(() => {
-    if (timeframe !== "Last 24 Hours") { setNotice(null); return; }
+    if (timeframe !== "Last 24 Hours") {
+      setNotice(null);
+      return;
+    }
     const start = isoDate(startOfToday());
     const end = isoDate(new Date());
     if (range.start !== start || range.end !== end) setRange({ start, end });
@@ -80,30 +110,37 @@ export default function TonnageReportsPage() {
       setErr(null);
       try {
         if (timeframe === "Last 24 Hours") {
-          const res = await fetch("/api/tonnage?timeframe=hour", { cache: "no-store" });
+          const res = await fetch("/api/tonnage?timeframe=hour", {
+            cache: "no-store",
+          });
           if (!res.ok) throw new Error(await res.text());
           const data: ApiRow[] = await res.json();
 
           const byHour: Record<number, ReportRow> = {};
-          const anchor = new Date(); anchor.setMinutes(0, 0, 0); // single anchor for consistency
+          const anchor = new Date();
+          anchor.setMinutes(0, 0, 0); // single anchor for consistency
 
           // fill from API
-          for (const r of (Array.isArray(data) ? data : [])) {
+          for (const r of Array.isArray(data) ? data : []) {
             const h = r.hour_index ?? 0;
-            if (!byHour[h]) byHour[h] = { timestamp: hourIndexToLocalMs(h, anchor) };
-            const pileLabel = r.pile?.replace(/(Pile)(\d+)/, "Pile $2") ?? "Unknown";
+            if (!byHour[h])
+              byHour[h] = { timestamp: hourIndexToLocalMs(h, anchor) };
+            const pileLabel =
+              r.pile?.replace(/(Pile)(\d+)/, "Pile $2") ?? "Unknown";
             byHour[h][pileLabel] = r.val ?? 0;
           }
 
           // prefill missing hours
           for (let h = 0; h <= 23; h++) {
-            if (!byHour[h]) byHour[h] = { timestamp: hourIndexToLocalMs(h, anchor) };
+            if (!byHour[h])
+              byHour[h] = { timestamp: hourIndexToLocalMs(h, anchor) };
           }
 
           // totals from active piles
           for (const hr of Object.values(byHour)) {
             hr.total = activePiles.reduce(
-              (sum, p) => sum + Number(hr[p.name] || 0), 0
+              (sum, p) => sum + Number(hr[p.name] || 0),
+              0
             );
           }
 
@@ -124,16 +161,19 @@ export default function TonnageReportsPage() {
         url.searchParams.set("timeframe", tf);
         url.searchParams.set("start", startIso);
         url.searchParams.set("end", endIso);
-        if (activePiles.length) url.searchParams.set("piles", activePiles.map(p => p.id).join(","));
+        if (activePiles.length)
+          url.searchParams.set("piles", activePiles.map((p) => p.id).join(","));
 
         const res = await fetch(url.toString(), { cache: "no-store" });
         if (!res.ok) throw new Error(await res.text());
         const data: ApiRow[] = await res.json();
 
-        const idToName = new Map(activePiles.map(p => [p.id, p.name] as const));
+        const idToName = new Map(
+          activePiles.map((p) => [p.id, p.name] as const)
+        );
         const byBucket: Record<string, ReportRow> = {};
 
-        for (const r of (Array.isArray(data) ? data : [])) {
+        for (const r of Array.isArray(data) ? data : []) {
           const ts = new Date(r.bucket!).toISOString();
           if (!byBucket[ts]) byBucket[ts] = { timestamp: ts };
           const displayName = idToName.get(r.tagindex!) ?? r.tagname!;
@@ -141,17 +181,16 @@ export default function TonnageReportsPage() {
         }
 
         const shaped = Object.values(byBucket).sort(
-          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          (a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
 
         setRows(shaped);
       } catch (e: unknown) {
-        const message =
-          e instanceof Error ? e.message : "Failed to load data";
+        const message = e instanceof Error ? e.message : "Failed to load data";
         setErr(message);
         setRows([]);
       } finally {
-
         setLoading(false);
       }
     };
@@ -161,7 +200,9 @@ export default function TonnageReportsPage() {
 
   return (
     <main className="p-4 md:p-6 lg:p-8 max-w-[1400px] mx-auto space-y-4">
-      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Tonnage Reports</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
+        Tonnage Reports
+      </h1>
 
       <Toolbar
         timeframe={timeframe}
