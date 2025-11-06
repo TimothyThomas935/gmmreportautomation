@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const EXPECTED_PASSWORD =
-  process.env.SITE_PASSWORD || "changeme"; // <- set this!
+  process.env.SITE_PASSWORD || "minecoalsafe";
 
 export function middleware(req: NextRequest) {
   const auth = req.headers.get("authorization");
