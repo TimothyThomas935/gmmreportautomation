@@ -9,15 +9,19 @@ const supabase = createClient(
 );
 
 type HourlyRow = {
-  hour_index: number;   // 0..23, where 23 is current hour
-  pile: string | null;  // e.g. "Pile1"
-  val: number | null;   // tons
+  hour_index: number;     // 0..23, where 23 is current hour
+  pile: string | null;    // e.g. "Pile1"
+  val: number | null;     // tons
+  ash: number | null;     // ash from api_hourly_tonnage_simple
 };
 
 type HistoryRow = {
   ts_start: string;
   pile_name: string;
   tons: number;
+  ash: number | null;
+  // optional: source, if you want to tag how it was created
+  // source?: string;
 };
 
 function startOfCurrentHour(): Date {
@@ -37,7 +41,7 @@ export async function POST() {
 
     const rows: HourlyRow[] = Array.isArray(data) ? (data as HourlyRow[]) : [];
 
-    // 2) Anchor at the start of the current hour (local → then converted by hourIndexToLocalMs)
+    // 2) Anchor at the start of the current hour
     const anchor = startOfCurrentHour();
 
     const historyRows: HistoryRow[] = [];
@@ -45,21 +49,22 @@ export async function POST() {
     for (const r of rows) {
       const h = r.hour_index;
 
-      // Skip current hour (23), only log completed hours 0..21 this accounts for the 10 min overlap
+      // Skip current hour (23), only log completed hours 0..21
       if (h < 0 || h > 21) continue;
 
-      // Compute the real timestamp for this hour index the same way the UI does
       const tsMs = hourIndexToLocalMs(h, anchor);
       const tsStartIso = new Date(tsMs).toISOString();
 
       const pileName =
         r.pile?.replace(/(Pile)(\d+)/, "Pile $2") ?? "Unknown";
 
-      historyRows.push({
-        ts_start: tsStartIso,
-        pile_name: pileName,
-        tons: r.val ?? 0,
-      });
+        historyRows.push({
+          ts_start: tsStartIso,
+          pile_name: pileName,
+          tons: r.val ?? 0,
+          ash: r.ash ?? 0, // 👈 force 0 for null or missing values
+        });
+        
     }
 
     if (!historyRows.length) {
