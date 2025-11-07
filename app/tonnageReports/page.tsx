@@ -49,7 +49,7 @@ type ApiRow = {
 export default function TonnageReportsPage() {
   const [timeframe, setTimeframe] = useState<Timeframe>("Last 24 Hours");
   const piles: Pile[] = INITIAL_PILES;
-  const [selectedPileIds, setSelectedPileIds] = useState<number[]>([1, 4]);
+  const [selectedPileIds, setSelectedPileIds] = useState<number[]>([1, 3, 4]);
 
   const [rows, setRows] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -238,19 +238,20 @@ export default function TonnageReportsPage() {
 
       <SummaryCards rows={rows} piles={activePiles} timeframe={timeframe} />
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 auto-rows-[400px]">
+      <section className="flex flex-col lg:grid lg:grid-cols-2 gap-4 auto-rows-[400px]">
         {/* Row 1: Equal height timer + chart */}
         {timeframe === "Last 24 Hours" && (
-          <div className="h-[500px]">
+          <div className="h-[500px] mb-4">
             <UptimeTimer />
           </div>
         )}
-        <div className="h-full">
+
+        <div className="h-full mb-4">
           <ReportChart rows={rows} piles={activePiles} timeframe={timeframe} />
         </div>
 
         {/* Row 2: Full-width table */}
-        <div className="lg:col-span-2 pt-12">
+        <div className="lg:col-span-2 mt-18">
           <ReportTable rows={rows} piles={activePiles} timeframe={timeframe} />
         </div>
       </section>

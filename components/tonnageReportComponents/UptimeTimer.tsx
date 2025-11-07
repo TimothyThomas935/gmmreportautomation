@@ -22,7 +22,6 @@ type ShiftEvent = {
   runDurationHours?: number | null;
 };
 
-
 function startOfCurrentHour(): Date {
   const d = new Date();
   d.setMinutes(0, 0, 0);
@@ -93,7 +92,8 @@ export default function UptimeTimer() {
     const id = setInterval(() => fetchHourly().catch(console.error), 60_000);
     return () => clearInterval(id);
   }, []);
-  // inside UptimeTimer component
+
+  // load recent shift events
   useEffect(() => {
     let stop = false;
 
@@ -103,7 +103,7 @@ export default function UptimeTimer() {
       });
       if (!r.ok) return;
       const rows = await r.json();
-      if (!stop) setEvents(rows); // rows: { ts, action, runStart, siteTotalAtFlip }[]
+      if (!stop) setEvents(rows);
     }
 
     load().catch(console.error);
@@ -197,7 +197,7 @@ export default function UptimeTimer() {
   const lastT = model.perHour[model.perHour.length - 1]?.t;
 
   return (
-    <div className="space-y-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black h-[446px]">
+    <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200/70 bg-white p-4 shadow-sm text-black h-[446px] overflow-hidden">
       {/* Status + timer */}
       <div className="flex items-center gap-3">
         <span
@@ -229,7 +229,6 @@ export default function UptimeTimer() {
         <div className="mb-2 text-sm text-zinc-600">Last 24 hours</div>
         <div className="grid grid-cols-24 gap-[2px]">
           {model.perHour.map((h) => {
-            // color priority: unknown → gray; known with >0 & <THRESHOLD → amber; known & >=THRESHOLD → green; known & ==0 → red
             const cls =
               h.isUp === null
                 ? "bg-zinc-300/70"
@@ -270,9 +269,9 @@ export default function UptimeTimer() {
         )}
       </div>
 
-      {/* Recent events */}
-      <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
-        <div className="border-b px-4 py-2 font-medium">
+      {/* Recent events (scrollable area) */}
+      <div className="rounded-2xl bg-white shadow-sm flex-1 min-h-0 overflow-y-auto">
+        <div className="border-b px-4 py-2 font-medium sticky top-0 bg-white">
           Recent State Changes
         </div>
         <table className="w-full text-sm">
@@ -297,7 +296,9 @@ export default function UptimeTimer() {
                 return (
                   <tr key={`${e.runStart}-${i}`} className="border-t">
                     <td className="px-4 py-2">{e.action}</td>
-                    <td className="px-4 py-2">{dts(Date.parse(e.runStart))}</td>
+                    <td className="px-4 py-2">
+                      {dts(Date.parse(e.runStart))}
+                    </td>
                     <td className="px-4 py-2">{hrs ?? "—"}</td>
                     <td className="px-4 py-2 text-right">
                       {typeof e.siteTotalAtFlip === "number"
